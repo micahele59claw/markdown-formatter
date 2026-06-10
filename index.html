@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown Formatter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+  }
+  header h1 span { color: #7c7c7c; font-weight: 400; font-size: 14px; margin-left: 8px; }
+  .btn-group { display: flex; gap: 8px; }
+  button {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  button:hover { background: #2a2a2a; color: #fff; border-color: #444; }
+  button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+  button.primary:hover { background: #1d4ed8; }
+  .container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+  .pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pane-header {
+    padding: 10px 16px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    background: #161616;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  textarea {
+    flex: 1;
+    background: #1a1a1a;
+    color: #d4d4d4;
+    border: none;
+    padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+  }
+  textarea::placeholder { color: #555; }
+  .divider {
+    width: 1px;
+    background: #2a2a2a;
+  }
+  #output {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    background: #1a1a1a;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  #output h1 { font-size: 28px; font-weight: 700; margin: 0 0 16px 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  #output h2 { font-size: 22px; font-weight: 600; margin: 20px 0 12px 0; color: #fff; }
+  #output h3 { font-size: 18px; font-weight: 600; margin: 16px 0 8px 0; color: #e0e0e0; }
+  #output h4 { font-size: 16px; font-weight: 600; margin: 12px 0 6px 0; color: #ccc; }
+  #output p { margin: 0 0 12px 0; }
+  #output ul, #output ol { margin: 0 0 12px 0; padding-left: 24px; }
+  #output li { margin: 4px 0; }
+  #output strong { color: #fff; font-weight: 600; }
+  #output em { color: #a0a0ff; font-style: italic; }
+  #output code {
+    background: #2a2a2a;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    color: #e06c75;
+  }
+  #output pre {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 0 0 12px 0;
+    overflow-x: auto;
+  }
+  #output pre code {
+    background: none;
+    padding: 0;
+    color: #abb2bf;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  #output blockquote {
+    border-left: 3px solid #444;
+    margin: 0 0 12px 0;
+    padding: 8px 16px;
+    color: #999;
+    background: #161616;
+    border-radius: 0 4px 4px 0;
+  }
+  #output hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
+  #output a { color: #5b9bf5; text-decoration: none; }
+  #output a:hover { text-decoration: underline; }
+  #output table { border-collapse: collapse; margin: 0 0 12px 0; width: 100%; }
+  #output th, #output td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
+  #output th { background: #222; font-weight: 600; color: #fff; }
+  #output img { max-width: 100%; border-radius: 4px; }
+  .copy-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #2563eb;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .word-count { color: #666; font-size: 11px; text-transform: none; letter-spacing: 0; }
+  @media (max-width: 768px) {
+    .container { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+    .divider { width: 100%; height: 1px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Markdown Formatter <span>paste raw, get formatted</span></h1>
+  <div class="btn-group">
+    <button onclick="clearAll()">Clear</button>
+    <button onclick="copyFormatted()">Copy Formatted</button>
+    <button class="primary" onclick="copyHTML()">Copy HTML</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="pane">
+    <div class="pane-header">
+      Raw Markdown
+      <span class="word-count" id="wordCount"></span>
+    </div>
+    <textarea id="input" placeholder="Paste your raw markdown here...&#10;&#10;All those **asterisks** and ## headers from Claude Code / Codex will render beautifully on the right."></textarea>
+  </div>
+  <div class="divider"></div>
+  <div class="pane">
+    <div class="pane-header">Formatted Preview</div>
+    <div id="output"></div>
+  </div>
+</div>
+
+<div class="copy-toast" id="toast">Copied!</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script>
+const input = document.getElementById('input');
+const output = document.getElementById('output');
+const wordCount = document.getElementById('wordCount');
+
+marked.setOptions({
+  breaks: true,
+  gfm: true
+});
+
+function render() {
+  const raw = input.value;
+  output.innerHTML = marked.parse(raw);
+  const words = raw.trim() ? raw.trim().split(/\s+/).length : 0;
+  const chars = raw.length;
+  wordCount.textContent = `${words} words · ${chars} chars`;
+}
+
+input.addEventListener('input', render);
+
+// Auto-paste from clipboard on focus if empty
+input.addEventListener('focus', async () => {
+  if (!input.value) {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.length > 10) {
+        input.value = text;
+        render();
+      }
+    } catch (e) { /* clipboard permission denied, that's fine */ }
+  }
+});
+
+function clearAll() {
+  input.value = '';
+  output.innerHTML = '';
+  wordCount.textContent = '';
+}
+
+function copyFormatted() {
+  const html = output.innerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const item = new ClipboardItem({ 'text/html': blob, 'text/plain': new Blob([output.innerText], { type: 'text/plain' }) });
+  navigator.clipboard.write([item]).then(() => showToast('Formatted text copied!'));
+}
+
+function copyHTML() {
+  const html = output.innerHTML;
+  navigator.clipboard.writeText(html).then(() => showToast('HTML copied!'));
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// Demo content
+input.value = `# Example: What Claude Code Spits Out
+
+When you copy from **Claude Code** or **Codex**, you get raw markdown like this:
+
+## The Problem
+
+- All the \`**asterisks**\` are visible
+- Headers show as \`## Heading\` instead of real headings
+- Code blocks look like \`\`\`javascript garbage
+- *Italics* show as \`*text*\`
+
+## The Solution
+
+Just **paste it here** and get:
+
+1. Properly rendered headings
+2. Bold and italic text that looks right
+3. Clean code blocks with syntax highlighting
+4. Lists that actually look like lists
+
+> This is a blockquote that would look terrible as raw markdown.
+
+---
+
+### Code Example
+
+\`\`\`javascript
+function formatMarkdown(raw) {
+  return marked.parse(raw);
+}
+\`\`\`
+
+| Feature | Raw | Formatted |
+|---------|-----|-----------|
+| Headers | \`## Text\` | Real heading |
+| Bold | \`**text**\` | **text** |
+| Links | \`[text](url)\` | [clickable link](https://example.com) |
+
+Paste your own content on the left and watch it transform!`;
+
+render();
+</script>
+</body>
+</html>
